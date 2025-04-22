@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+table,
+tr,
+td,
+th {
+  white-space: nowrap !important;
+}
+body {
+  font-family: "Arial", sans-serif;
+}
+
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.reactJewishDatePicker .navigation {
+  height: 30px !important;
+}
+
+.monthYearSelection {
+  gap: 4px;
+}
+.reactJewishDatePicker .selectedDate {
+  border: none !important;
+}
+svg.calendarIcon {
+  fill: #1447e6;
+}
+
+.reactJewishDatePicker .monthWrapper.open {
+  right: 50% !important ;
+  transform: scaleY(1) translateX(50%) !important;
+}
