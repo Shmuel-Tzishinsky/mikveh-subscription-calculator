@@ -9,7 +9,7 @@ const ResultsDisplay = ({ result }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <p className="text-gray-700 font-medium">
-              סה"כ פעימות בחודש:{" "}
+              סה"כ פעימות מתחילת החודש:{" "}
               <span className="font-bold text-blue-600 ml-2">
                 {result.totalMonthPulses}
               </span>
@@ -48,6 +48,22 @@ const ResultsDisplay = ({ result }) => {
               עלות לתקופה זו:{" "}
               <span className="font-bold text-blue-600 ml-2">
                 {result.period2.cost} ש"ח
+              </span>
+            </p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <p className="text-gray-700 font-medium">
+              מספר הימים שנבחרו:{" "}
+              <span className="font-bold text-blue-600 ml-2">
+                {result.selectedDaysCount}
+              </span>
+            </p>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <p className="text-gray-700 font-medium">
+              ימים שחלפו מתחילת החודש:{" "}
+              <span className="font-bold text-blue-600 ml-2">
+                {result.daysPassedCount}
               </span>
             </p>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { HDate, HebrewCalendar } from "@hebcal/core";
 import { ReactJewishDatePicker } from "react-jewish-datepicker";
 import "react-jewish-datepicker/dist/index.css";
@@ -38,6 +38,20 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+
+  const datePickerRef = useRef(null);
+  const subscriptionPriceRef = useRef(null);
+  const calculateButtonRef = useRef(null);
+
+  // בדיקה אם זו הכניסה הראשונה להצגת מודל הסבר
+  useEffect(() => {
+    const hasSeenIntro = localStorage.getItem("hasSeenIntro");
+    if (!hasSeenIntro) {
+      setShowIntroModal(true);
+    }
+  }, []);
 
   // האזנה לאירוע BeforeInstallPromptEvent עבור התקנת PWA
   useEffect(() => {
@@ -78,6 +92,47 @@ export default function Home() {
     setShowInstallPrompt(false);
   };
 
+  // סגירת מודל ההסבר והתחלת תהליך ההדרכה
+  const closeIntroModal = () => {
+    setShowIntroModal(false);
+    setTourStep(1); // התחל את ההדרכה מהצעד הראשון
+  };
+
+  // דילוג על תהליך ההדרכה
+  const skipTour = () => {
+    setTourStep(0);
+    localStorage.setItem("hasSeenIntro", "true");
+  };
+
+  // מעבר לצעד הבא בהדרכה
+  const nextTourStep = () => {
+    if (tourStep < 3) {
+      setTourStep(tourStep + 1);
+    } else {
+      setTourStep(0);
+      localStorage.setItem("hasSeenIntro", "true");
+    }
+  };
+
+  // הגדרת צעדי ההדרכה
+  const tourSteps = [
+    {
+      target: datePickerRef,
+      content: "בחר כאן את טווח התאריכים העבריים עבור החישוב.",
+      position: "bottom",
+    },
+    {
+      target: subscriptionPriceRef,
+      content: "הזן או בחר את מחיר המנוי החודשי.",
+      position: "bottom",
+    },
+    {
+      target: calculateButtonRef,
+      content: "לחץ כאן כדי לחשב את עלות המנוי עבור התקופה שנבחרה.",
+      position: "bottom",
+    },
+  ];
+
   // חישוב פעימות עבור טווח התאריכים שנבחר
   const calculatePulses = () => {
     if (!dateRange.startDate || !dateRange.endDate) {
@@ -108,8 +163,23 @@ export default function Home() {
       startHebrewDate.getMonth() === 12
         ? startHebrewDate.getFullYear() + 1
         : startHebrewDate.getFullYear();
-    const firstDayOfNextMonth = new HDate(1, nextMonth, nextYear);
+    const firstDayOfNextMonth = endHebrewDate;
     const lastDayOfMonth = firstDayOfNextMonth.prev();
+
+    // חישוב מספר הימים שנבחרו וימים שחלפו
+    let selectedDaysCount = 0;
+    let daysPassedCount = 0;
+    let tempDate = new HDate(startHebrewDate);
+    while (!tempDate.isSameDate(endHebrewDate)) {
+      selectedDaysCount++;
+      tempDate = tempDate.next();
+    }
+    selectedDaysCount++; // כולל את יום הסיום
+    tempDate = new HDate(firstDayOfMonth);
+    while (!tempDate.isSameDate(startHebrewDate)) {
+      daysPassedCount++;
+      tempDate = tempDate.next();
+    }
 
     let totalMonthPulses = 0;
     let days = [];
@@ -223,6 +293,8 @@ export default function Home() {
       period1: { pulses: period1Pulses, cost: period1Cost.toFixed(2) },
       period2: { pulses: period2Pulses, cost: period2Cost.toFixed(2) },
       days,
+      selectedDaysCount,
+      daysPassedCount,
     });
   };
 
@@ -235,11 +307,99 @@ export default function Home() {
     });
   };
 
+  // רינדור מודל ההדרכה הצף
+  const renderTourModal = () => {
+    if (tourStep === 0) return null;
+    const step = tourSteps[tourStep - 1];
+    const targetRef = step.target.current;
+    if (!targetRef) return null;
+
+    const rect = targetRef.getBoundingClientRect();
+    const positionStyle =
+      step.position === "bottom"
+        ? {
+            top: rect.bottom + window.scrollY + 10,
+            left: rect.left + window.scrollX,
+          }
+        : {
+            bottom: window.innerHeight - rect.top + window.scrollY + 10,
+            left: rect.left + window.scrollX,
+          };
+
+    return (
+      <div
+        className="fixed bg-white rounded-lg p-4 shadow-2xl z-50 max-w-sm"
+        style={positionStyle}
+      >
+        <p className="text-gray-700 mb-4">{step.content}</p>
+        <div className="flex justify-between">
+          <button
+            onClick={skipTour}
+            className="bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition-all"
+          >
+            דלג
+          </button>
+          <button
+            onClick={nextTourStep}
+            className="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition-all"
+          >
+            {tourStep === 3 ? "סיים" : "הבא"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex flex-col items-center justify-center py-6 px-4">
+      {/* מודל הסבר למשתמש חדש */}
+      {showIntroModal && (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-gray-100  bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+            <h2 className="text-2xl font-bold text-blue-700 mb-4">
+              ברוכים הבאים למערכת לחישוב מנוי חודשי למקווה!
+            </h2>
+            <p className="text-gray-700 mb-4">
+              אפליקציה זו מחשבת את עלות המנוי החודשי למקווה על בסיס תאריכים
+              עבריים. בחרו טווח תאריכים ומחיר מנוי, והאפליקציה תחשב את מספר
+              הפעימות (יחידות עלות) עבור התקופה.
+            </p>
+            <div className="text-gray-700 mb-4">
+              <strong>איך החישוב עובד?</strong>
+              <br />
+              - החישוב מתחיל תמיד מהיום הראשון של החודש העברי.
+              <br />
+              - התקופה הראשונה כוללת פעימות מהיום הראשון של החודש ועד תאריך
+              ההתחלה שבחרתם.
+              <br />
+              - התקופה השנייה כוללת פעימות מהיום שלמחרת תאריך ההתחלה ועד תאריך
+              הסיום שבחרתם.
+              <br />- חוקי הפעימות:
+              <ul className="list-disc pr-5">
+                <li>יום רגיל = 1 פעימה</li>
+                <li>שישי או ערב חג = 2 פעימות</li>
+                <li>שבת או יום טוב = 0 פעימות</li>
+              </ul>
+              <br />
+              המחיר הכולל של המנוי מחולק לפי מספר הפעימות בחודש, והתוצאה מראה את
+              העלות עבור התקופה שבחרתם.
+            </div>
+            <button
+              onClick={closeIntroModal}
+              className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 shadow-md transition-all duration-300"
+            >
+              התחל הדרכה
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* מודל הדרכה צף */}
+      {renderTourModal()}
+
       <div className="bg-white shadow-2xl rounded-xl p-4 max-w-3xl w-full">
         <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
-          חישוב מנוי חודשי - מקווה
+          מחשבון למנוי חודשי למקווה
         </h1>
 
         {/* התראה להתקנת האפליקציה כ-PWA */}
@@ -255,7 +415,7 @@ export default function Home() {
           </div>
         )}
 
-        <div className="mb-6">
+        <div className="mb-6" ref={datePickerRef}>
           <label className="block text-gray-800 font-semibold mb-2">
             בחר טווח תאריכים
           </label>
@@ -269,9 +429,10 @@ export default function Home() {
                 endDate: endDay.jewishDate,
               });
             }}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition-shadow"
           />
         </div>
-        <div className="mb-6">
+        <div className="mb-6" ref={subscriptionPriceRef}>
           <label className="block text-gray-800 font-semibold mb-2">
             מחיר מנוי
           </label>
@@ -316,6 +477,7 @@ export default function Home() {
           <button
             onClick={calculatePulses}
             className="flex-1 bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 shadow-md transition-all duration-300 transform hover:scale-105"
+            ref={calculateButtonRef}
           >
             חשב
           </button>

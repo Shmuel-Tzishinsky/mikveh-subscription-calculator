@@ -14,7 +14,8 @@
     "next-pwa": "^5.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-jewish-datepicker": "^2.0.21"
+    "react-jewish-datepicker": "^2.0.21",
+    "react-joyride": "^2.9.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
