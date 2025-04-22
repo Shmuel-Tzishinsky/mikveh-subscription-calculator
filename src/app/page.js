@@ -11,6 +11,7 @@ import {
   numberToHebrew,
   hebrewYearToLetters,
 } from "@/utils/hebrewUtils";
+import Image from "next/image";
 
 // עמוד ראשי לחישוב מנוי חודשי של מקווה
 export default function Home() {
@@ -39,7 +40,6 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
-  const [tourStep, setTourStep] = useState(0);
 
   const datePickerRef = useRef(null);
   const subscriptionPriceRef = useRef(null);
@@ -92,46 +92,16 @@ export default function Home() {
     setShowInstallPrompt(false);
   };
 
-  // סגירת מודל ההסבר והתחלת תהליך ההדרכה
+  // סגירת מודל ההסבר
   const closeIntroModal = () => {
     setShowIntroModal(false);
-    setTourStep(1); // התחל את ההדרכה מהצעד הראשון
-  };
-
-  // דילוג על תהליך ההדרכה
-  const skipTour = () => {
-    setTourStep(0);
     localStorage.setItem("hasSeenIntro", "true");
   };
 
-  // מעבר לצעד הבא בהדרכה
-  const nextTourStep = () => {
-    if (tourStep < 3) {
-      setTourStep(tourStep + 1);
-    } else {
-      setTourStep(0);
-      localStorage.setItem("hasSeenIntro", "true");
-    }
+  // פונקציה לפתיחת מודל ההסבר מחדש
+  const openIntroModal = () => {
+    setShowIntroModal(true);
   };
-
-  // הגדרת צעדי ההדרכה
-  const tourSteps = [
-    {
-      target: datePickerRef,
-      content: "בחר כאן את טווח התאריכים העבריים עבור החישוב.",
-      position: "bottom",
-    },
-    {
-      target: subscriptionPriceRef,
-      content: "הזן או בחר את מחיר המנוי החודשי.",
-      position: "bottom",
-    },
-    {
-      target: calculateButtonRef,
-      content: "לחץ כאן כדי לחשב את עלות המנוי עבור התקופה שנבחרה.",
-      position: "bottom",
-    },
-  ];
 
   // חישוב פעימות עבור טווח התאריכים שנבחר
   const calculatePulses = () => {
@@ -307,54 +277,11 @@ export default function Home() {
     });
   };
 
-  // רינדור מודל ההדרכה הצף
-  const renderTourModal = () => {
-    if (tourStep === 0) return null;
-    const step = tourSteps[tourStep - 1];
-    const targetRef = step.target.current;
-    if (!targetRef) return null;
-
-    const rect = targetRef.getBoundingClientRect();
-    const positionStyle =
-      step.position === "bottom"
-        ? {
-            top: rect.bottom + window.scrollY + 10,
-            left: rect.left + window.scrollX,
-          }
-        : {
-            bottom: window.innerHeight - rect.top + window.scrollY + 10,
-            left: rect.left + window.scrollX,
-          };
-
-    return (
-      <div
-        className="fixed bg-white rounded-lg p-4 shadow-2xl z-50 max-w-sm"
-        style={positionStyle}
-      >
-        <p className="text-gray-700 mb-4">{step.content}</p>
-        <div className="flex justify-between">
-          <button
-            onClick={skipTour}
-            className="bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition-all"
-          >
-            דלג
-          </button>
-          <button
-            onClick={nextTourStep}
-            className="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition-all"
-          >
-            {tourStep === 3 ? "סיים" : "הבא"}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex flex-col items-center justify-center py-6 px-4">
+    <div className=" min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex flex-col items-center justify-center py-6 px-4">
       {/* מודל הסבר למשתמש חדש */}
       {showIntroModal && (
-        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-gray-100  bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-gray-100 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
             <h2 className="text-2xl font-bold text-blue-700 mb-4">
               ברוכים הבאים למערכת לחישוב מנוי חודשי למקווה!
@@ -388,19 +315,26 @@ export default function Home() {
               onClick={closeIntroModal}
               className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 shadow-md transition-all duration-300"
             >
-              התחל הדרכה
+              סגור
             </button>
           </div>
         </div>
       )}
-
-      {/* מודל הדרכה צף */}
-      {renderTourModal()}
-
-      <div className="bg-white shadow-2xl rounded-xl p-4 max-w-3xl w-full">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
-          מחשבון למנוי חודשי למקווה
-        </h1>
+      {!showIntroModal && (
+        <button
+          onClick={openIntroModal}
+          className="fixed bg-white rounded-full bottom-3 left-3 text-blue-600 hover:text-blue-800 text-2xl font-bold transition-colors duration-300"
+          title="הצג הדרכה"
+        >
+          <Image src="/help-icon.png" alt="info" width={30} height={30} />
+        </button>
+      )}
+      <div className="bg-white shadow-2xl rounded-xl p-4 max-w-3xl w-full ">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-center text-blue-700">
+            מחשבון למנוי חודשי למקווה
+          </h1>
+        </div>
 
         {/* התראה להתקנת האפליקציה כ-PWA */}
         {showInstallPrompt && (
