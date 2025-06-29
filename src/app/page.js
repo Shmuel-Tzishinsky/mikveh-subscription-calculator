@@ -25,12 +25,12 @@ export default function Home() {
   const [dateRange, setDateRange] = useState({
     startDate: {
       day: today.getDate(),
-      monthName: today.getMonthName(),
+      monthName: today.getMonthName().replace("Tamuz", "Tammuz"),
       year: today.getFullYear(),
     },
     endDate: {
       day: nextMonthFirstDay.getDate(),
-      monthName: nextMonthFirstDay.getMonthName(),
+      monthName: nextMonthFirstDay.getMonthName().replace("Tamuz", "Tammuz"),
       year: nextMonthFirstDay.getFullYear(),
     },
   });
